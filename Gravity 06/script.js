@@ -19,28 +19,31 @@ var ctx = canvas.getContext("2d");
 var camera = {
     position : { x : 0, y : 0 },
     restPosition : { x : 0, y : 0 },
-    deltaPosition: 0.05,
+    deltaPosition: 0.1,
     zoom: 0.0,
     maxZoom : 10,
     minZoom : 0.1,
-    deltaZoom: 0.05,
+    deltaZoom: 0.1,
+    zoomSpeed: 0.02,
     restZoom: 1.0,
-    update: function(){  
-        
+    input : function(){
+
         if(gameKeyState.ArrowUp)    {this.restPosition.y -= (screen.height/4) / this.zoom}
         if(gameKeyState.ArrowDown)  {this.restPosition.y += (screen.height/4) / this.zoom}
         if(gameKeyState.ArrowLeft)  {this.restPosition.x -= (screen.width/4)  / this.zoom}
         if(gameKeyState.ArrowRight) {this.restPosition.x += (screen.width/4)  / this.zoom}
-        if(gameKeyState.q) { this.restZoom /= (1.0 + this.deltaZoom); if(this.restZoom < this.minZoom) {this.restZoom = this.minZoom} };
-        if(gameKeyState.e) { this.restZoom *= (1.0 + this.deltaZoom); if(this.restZoom > this.maxZoom) {this.restZoom = this.maxZoom} }; 
+        if(gameKeyState.q) { this.restZoom /= (1.0 + this.zoomSpeed); if(this.restZoom < this.minZoom) {this.restZoom = this.minZoom} };
+        if(gameKeyState.e) { this.restZoom *= (1.0 + this.zoomSpeed); if(this.restZoom > this.maxZoom) {this.restZoom = this.maxZoom} }; 
+    },
+    update: function(){  
         
-        let zoomDiff = this.zoom - this.restZoom;
-        this.zoom -= zoomDiff * this.deltaZoom;
+        let zoomDiff = this.restZoom - this.zoom;
+        this.zoom += zoomDiff * this.deltaZoom;
 
-        let positionDiffX = this.position.x - this.restPosition.x;
-        let positionDiffY = this.position.y - this.restPosition.y;
-        this.position.x -= positionDiffX * this.deltaPosition;
-        this.position.y -= positionDiffY * this.deltaPosition;
+        let positionDiffX = this.restPosition.x - this.position.x;
+        let positionDiffY = this.restPosition.y - this.position.y;
+        this.position.x += positionDiffX * this.deltaPosition;
+        this.position.y += positionDiffY * this.deltaPosition;
     }
 };
 
@@ -143,9 +146,9 @@ spaceship.radius = ((3 * spaceship.mass / 0.0001)/(4 * Math.PI)) ** (1/3);
 
 planet.radius = ((3 * planet.mass / 0.00001)/(4 * Math.PI)) ** (1/3);
 
-const asteroids = [];
+const objects = [];
 
-asteroids.push(planet);
+objects.push(planet);
 
 for(let i = 0 ; i < 300 ; i++) {
 
@@ -157,13 +160,13 @@ for(let i = 0 ; i < 300 ; i++) {
         angleVec : { x : 1, y : 0 },
         angularVelocity : rnd(-0.2, 0.2),
         torque : 0,
-        mass : rnd(1, 10),
+        mass : rnd(1, 20),
         radius : 0,
         momentOfInertia : 100.0,
         image : getRandomInt(0, 2)
     };
 
-    let dist = rnd(4000, 7000);
+    let dist = rnd(6000, 12000);
     let angle = rnd(0, 2 * Math.PI);
     let px = dist * Math.cos(angle);
     let py = dist * Math.sin(angle);
@@ -179,10 +182,10 @@ for(let i = 0 ; i < 300 ; i++) {
 
     asteroid.radius = ((3 * asteroid.mass / 0.00001)/(4 * Math.PI)) ** (1/3);
 
-    asteroids.push(asteroid);
+    objects.push(asteroid);
 };
 
-asteroids.push(spaceship);
+objects.push(spaceship);
 
 
 const images = [];
@@ -204,42 +207,50 @@ images.push(img2);
 images.push(img3);
 images.push(img4);
 
-function drawBalls() {
+function renderObjects() {
 
+    // clear screen
     ctx.resetTransform();
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for(let i = 0 ; i < asteroids.length ; i++) {
+    // hitbox
+    for(let i = 0 ; i < objects.length ; i++) {
         
-        var img = images[asteroids[i].image];
+        var img = images[objects[i].image];
 
-        ctx.setTransform(1, 0, 0, 1, (asteroids[i].position.x - camera.position.x) * camera.zoom + canvas.width/2, (asteroids[i].position.y - camera.position.y) * camera.zoom + canvas.height/2);
+        ctx.setTransform(1, 0, 0, 1, (objects[i].position.x - camera.position.x) * camera.zoom + canvas.width/2, (objects[i].position.y - camera.position.y) * camera.zoom + canvas.height/2);
         ctx.beginPath();
-        ctx.arc(0, 0, asteroids[i].radius * camera.zoom, 0, Math.PI*2);
+        ctx.arc(0, 0, objects[i].radius * camera.zoom, 0, Math.PI*2);
         ctx.fillStyle = "#0095DD22";
         ctx.fill();
         ctx.closePath();
     }
 
-    for(let i = 0 ; i < asteroids.length-1 ; i++) {
+    // objects
+    for(let i = 0 ; i < objects.length-1 ; i++) {
         
-        var img = images[asteroids[i].image];
-        ctx.setTransform(1, 0, 0, 1, (asteroids[i].position.x - camera.position.x) * camera.zoom + canvas.width/2, (asteroids[i].position.y - camera.position.y) * camera.zoom + canvas.height/2);
-        ctx.rotate(asteroids[i].angle + 0.25 * 2 * Math.PI);
-        ctx.drawImage(img, -asteroids[i].radius * camera.zoom, -asteroids[i].radius * camera.zoom, asteroids[i].radius*2 * camera.zoom, asteroids[i].radius*2 * camera.zoom);
+        var img = images[objects[i].image];
+        var x = (objects[i].position.x - camera.position.x) * camera.zoom + canvas.width/2;
+        var y = (objects[i].position.y - camera.position.y) * camera.zoom + canvas.height/2;
+        ctx.setTransform(1, 0, 0, 1, x, y);
+        ctx.rotate(objects[i].angle + 0.25 * 2 * Math.PI);
+        ctx.drawImage(img, -objects[i].radius * camera.zoom, -objects[i].radius * camera.zoom, objects[i].radius*2 * camera.zoom, objects[i].radius*2 * camera.zoom);
     }
 
+    // ship
     var img = images[spaceship.image];
-    ctx.setTransform(1, 0, 0, 1, (spaceship.position.x - camera.position.x) * camera.zoom + canvas.width/2, (spaceship.position.y - camera.position.y) * camera.zoom + canvas.height/2);
+    var x = (spaceship.position.x - camera.position.x) * camera.zoom + canvas.width/2;
+    var y = (spaceship.position.y - camera.position.y) * camera.zoom + canvas.height/2;
+    ctx.setTransform(1, 0, 0, 1, x, y);
     ctx.rotate(spaceship.angle + 0.25 * 2 * Math.PI);
     ctx.drawImage(img, -spaceship.radius * camera.zoom, -spaceship.radius*2 * camera.zoom, spaceship.radius*2 * camera.zoom, spaceship.radius*4 * camera.zoom);
 
+    // text
     ctx.resetTransform();
-
     ctx.font = "16px Arial";
     ctx.fillStyle = "white";
-    ctx.fillText(zoom, 50, 50);
+    ctx.fillText(camera.zoom, 50, 50);
 }
 
 //
@@ -250,72 +261,84 @@ function mainLoop() {
     if (gameKeyState.w == true) {spaceship.force.x += 1000 * spaceship.angleVec.x; spaceship.force.y += 1000 * spaceship.angleVec.y;}
     if (gameKeyState.s == true) { }
 
-    update();
+    calculateGravity();
+    updateState();
 
     camera.restPosition.x = spaceship.position.x
     camera.restPosition.y = spaceship.position.y
-
+    
+    camera.input();
     camera.update();
 
     //cx = spaceship.position.x + (mx - screen.width/2) / zoom;
     //cy = spaceship.position.y + (my - screen.height/2) / zoom;
 
-    requestAnimationFrame(drawBalls);
+    requestAnimationFrame(renderObjects);
 }
 
-function update()
+function calculateGravity()
 {
+    for(let i = 0 ; i < objects.length-1 ; i++) {
 
-    for(let i = 0 ; i < asteroids.length-1 ; i++) {
+        for(let j = i+1 ; j < objects.length ; j++ ) {
 
-        for(let j = i+1 ; j < asteroids.length ; j++ ) {
+            // distance vector
+            let rx = objects[j].position.x - objects[i].position.x;
+            let ry = objects[j].position.y - objects[i].position.y;
 
-            let rx = asteroids[j].position.x - asteroids[i].position.x;
-            let ry = asteroids[j].position.y - asteroids[i].position.y;
-
-            let rSum = asteroids[i].radius + asteroids[j].radius;
+            let rSum = objects[i].radius + objects[j].radius;
 
             //if ((Math.abs(rx) < rSum) || (Math.abs(ry) < rSum) ) { continue; }
 
+            // distance squared
             let r2 = rx*rx+ry*ry;
 
             if (r2 < rSum*rSum) { continue; }
 
+            // distance scalar
             let r = Math.sqrt(r2);
-            let f = G * (asteroids[i].mass * asteroids[j].mass) / r2;
 
-            asteroids[i].force.x += f * (rx / r);
-            asteroids[i].force.y += f * (ry / r);
+            // force scalar
+            let f = G * (objects[i].mass * objects[j].mass) / r2;
 
-            asteroids[j].force.x -= f * (rx / r);
-            asteroids[j].force.y -= f * (ry / r);
+            // force  vector
+            let fx = f * rx / r;
+            let fy = f * ry / r;
+
+            // apply force
+            objects[i].force.x += fx;
+            objects[i].force.y += fy;
+
+            objects[j].force.x -= fx;
+            objects[j].force.y -= fy;
         };
     };
+}
 
-    for(let i = 0 ; i < asteroids.length ; i++) {
+function updateState() {
 
-        //
-        asteroids[i].velocity.x += asteroids[i].force.x / asteroids[i].mass * dt;
-        asteroids[i].velocity.y += asteroids[i].force.y / asteroids[i].mass * dt;
-
-        asteroids[i].position.x += asteroids[i].velocity.x * dt;
-        asteroids[i].position.y += asteroids[i].velocity.y * dt;
-
-        asteroids[i].force.x = 0;
-        asteroids[i].force.y = 0;
+    for(let i = 0 ; i < objects.length ; i++) {
 
         //
-        asteroids[i].angularVelocity += asteroids[i].torque / asteroids[i].momentOfInertia * dt;
+        objects[i].velocity.x += objects[i].force.x / objects[i].mass * dt;
+        objects[i].velocity.y += objects[i].force.y / objects[i].mass * dt;
 
-        asteroids[i].angle += asteroids[i].angularVelocity * dt;
+        objects[i].position.x += objects[i].velocity.x * dt;
+        objects[i].position.y += objects[i].velocity.y * dt;
 
-        //asteroids[i].angleVec.x = Math.cos(asteroids[i].angle ); 
-        //asteroids[i].angleVec.y = Math.sin(asteroids[i].angle );
+        objects[i].force.x = 0;
+        objects[i].force.y = 0;
 
-        asteroids[i].torque = 0;
+        //
+        objects[i].angularVelocity += objects[i].torque / objects[i].momentOfInertia * dt;
 
+        objects[i].angle += objects[i].angularVelocity * dt;
+
+        //objects[i].angleVec.x = Math.cos(objects[i].angle ); 
+        //objects[i].angleVec.y = Math.sin(objects[i].angle );
+
+        objects[i].torque = 0;
     };
-
 }
 
 // run loop
