@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Gravity simulation by MSN - Made day 01 of learning JS</title>
+    <style>* { padding: 0; margin: 0; } canvas { background: #eee; display: block; margin: 0 auto; }</style>
+</head>
+<body>
+
+<canvas id="myCanvas" width="800" height="600"></canvas>
+
+<script>
+    var canvas = document.getElementById("myCanvas");
+    var ctx = canvas.getContext("2d");
+    var ballRadius = 10;
+    
+    var G = 100.0; 
+
+    var m1 = 1000.0;
+    var m2 = 200.0;
+
+    var px1 = canvas.width*0.2;
+    var py1 = canvas.height*0.2;
+    var px2 = canvas.width*0.8;
+    var py2 = canvas.height*0.8;
+
+    var vx1 = -1;
+    var vy1 = 1;
+    var vx2 = 5;
+    var vy2 = -5;
+
+    var fx1 = 0.0;
+    var fy1 = 0.0;
+    var fx2 = 0.0;
+    var fy2 = 0.0;
+
+    
+    var dt = 0.1;
+
+    function drawBalls() {
+        
+        ctx.beginPath();
+        ctx.arc(px1, py1, ballRadius, 0, Math.PI*2);
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.arc(px2, py2, ballRadius, 0, Math.PI*2);
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    function draw() {
+        
+        update()
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        drawBalls();
+
+        if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
+            dx = -dx;
+        }
+        if(y + dy > canvas.height-ballRadius || y + dy < ballRadius) {
+            dy = -dy;
+        }
+
+    }
+
+    function update()
+    {
+        
+        let rx = px2 - px1;
+        let ry = py2 - py1;
+        let r2 = rx*rx+ry*ry;
+        
+        let r = Math.sqrt(r2);
+        let f = G * (m1 * m2) / r2;
+        
+        
+        fx1 = f * (rx / r);
+        fy1 = f * (ry / r);
+
+        fx2 = -f * (rx / r);
+        fy2 = -f * (ry / r);
+
+        //
+        vx1 += (fx1 / m1) * dt;
+        vy1 += (fy1 / m1) * dt;
+        vx2 += (fx2 / m2) * dt;
+        vy2 += (fy2 / m2) * dt;
+
+        //
+        px1 += vx1 * dt;
+        py1 += vy1 * dt;
+        px2 += vx2 * dt;
+        py2 += vy2 * dt;
+
+        //
+        fx1 = 0.0;
+        fy1 = 0.0;
+        fx2 = 0.0;
+        fy2 = 0.0;
+    }
+
+    setInterval(draw, 10);
+</script>
+
+</body>
+</html>

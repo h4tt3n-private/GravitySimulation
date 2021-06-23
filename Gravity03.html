@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Gravity simulation by MSN - Made day 01 of learning JS</title>
+    <style>
+        * { 
+            padding: 0; 
+            margin: 0; 
+            } 
+    </style>
+</head>
+
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script>
+    var canvas = document.getElementById("myCanvas");
+    canvas.setAttribute('width', window.innerWidth);
+    canvas.setAttribute('height', window.innerHeight);
+    var ctx = canvas.getContext("2d");
+    canvas.style.position = "absolute";
+    canvas.style.top = "0px";
+    canvas.style.left = "0px";
+    ctx.fillStyle = "black";
+    
+    // Gravitational constant
+    const G = 80.0; 
+
+    // Density
+    var d = 0.005;
+
+    // Mass
+    var m1 = 1000.0;
+    var m2 = 200.0;
+
+    // Radius
+    var r1 = ((3*m1/d)/(4*Math.PI)) ** (1/3)
+    var r2 = ((3*m2/d)/(4*Math.PI)) ** (1/3)
+    
+    // Initial position
+    var px1 = canvas.width*0.4;
+    var py1 = canvas.height*0.4;
+    var px2 = canvas.width*0.7;
+    var py2 = canvas.height*0.7;
+
+    // Initial velocity
+    var vx1 = -1;
+    var vy1 = 1;
+    var vx2 = 5;
+    var vy2 = -5;
+
+    // Initial force
+    var fx1 = 0.0;
+    var fy1 = 0.0;
+    var fx2 = 0.0;
+    var fy2 = 0.0;
+
+    // Timestep, delta-time
+    var dt = 0.2;
+
+    var img1 = new Image();
+    img1.src = '../img/asteroid02.png';
+
+    var img2 = new Image();
+    img2.src = '../img/asteroid03.png';
+    
+    var a1 = 0;
+    var a2 = 0;
+
+    function drawBalls() {
+
+        ctx.setTransform(1,0,0,1,0,0);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.setTransform(0.3,0,0,0.3,px1-50, py1-50);
+        ctx.rotate(a1);
+        ctx.drawImage(img1, -img1.width/2, -img1.height/2);
+
+        ctx.setTransform(0.15,0,0,0.15,px2-50, py2-50);
+        ctx.rotate(a2);
+        ctx.drawImage(img2, -img2.width/2, -img2.height/2);
+    }
+
+    //
+    function mainLoop() {
+        
+        update();
+
+        drawBalls();
+    }
+
+    function update()
+    {
+        // Distance
+        let rx = px2 - px1;
+        let ry = py2 - py1;
+
+        // Dist. squared
+        let r2 = rx*rx+ry*ry;
+        
+        // Distance
+        let r = Math.sqrt(r2);
+
+        // Gravitational force
+        let f = G * (m1 * m2) / r2;
+        
+        // Force vectors
+        fx1 = f * (rx / r);
+        fy1 = f * (ry / r);
+        fx2 = -f * (rx / r);
+        fy2 = -f * (ry / r);
+
+        // Velocity vectors = Acceleration * dt
+        vx1 += (fx1 / m1) * dt;
+        vy1 += (fy1 / m1) * dt;
+        vx2 += (fx2 / m2) * dt;
+        vy2 += (fy2 / m2) * dt;
+
+        // Position vectors
+        px1 += vx1 * dt;
+        py1 += vy1 * dt;
+        px2 += vx2 * dt;
+        py2 += vy2 * dt;
+
+        // Reset force
+        fx1 = 0.0;
+        fy1 = 0.0;
+        fx2 = 0.0;
+        fy2 = 0.0;
+
+        a1 += 0.01;
+        a2 -= 0.02;
+    }
+
+    // run loop
+    setInterval(mainLoop, 10);
+
+</script>
+
+</body>
+</html>

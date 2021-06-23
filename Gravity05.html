@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Gravity simulation by MSN</title>
+</head>
+
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script>
+
+    var canvas = document.getElementById("myCanvas");
+    canvas.setAttribute('width', window.innerWidth);
+    canvas.setAttribute('height', window.innerHeight);
+    canvas.style.overflow = "visible";
+    
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "black";
+    
+    document.getElementById("myCanvas").style.overflow = "hidden";
+
+    var state = {
+            keydown: false,
+            code: -1,
+            key: ''
+        };
+
+    function keyDown(e){
+        state.keydown = true;
+        state.code = e.keyCode;
+        state.key = e.key;
+    };
+
+    function keyUp(e){
+        state.keydown = false;
+        state.code = -1;
+        state.key = '';
+    };
+
+    function rnd(min,max) {
+        return Math.random() * (max ? (max-min) : min) + (max ? min : 0) 
+    }
+
+    window.addEventListener('keydown', keyDown);
+    window.addEventListener('keyup', keyUp);
+
+    var spaceship = {
+        position : { x : 0, y : 0 },
+        velocity : { x : 0, y : 0 },
+        force : { x : 0, y : 0 },
+        angle : 0,
+        angleVec : { x : 1, y : 0 },
+        mass : 100
+    }
+
+    const asteroids = [];
+
+    for(let i = 0 ; i < 500 ; i++) {
+
+        var asteroid = {
+            position_x : rnd(-1000, 1000), 
+            position_y : rnd(-1000, 1000),
+            velocity_x : rnd(-1, 1), 
+            velocity_y : rnd(-1, 1),
+            force_x : 0, 
+            force_y : 0,
+            angle : rnd(0, 2 * Math.PI),
+            angleVec_x : 1, 
+            angleVec_y : 0,
+            mass : rnd(1, 10)
+        };
+        
+        asteroids.push(asteroid);
+    };
+
+    
+    
+    var cx = 0;
+    var cy = 0;
+
+    var zoom = 0.1;
+
+    // Gravitational constant
+    const G = 80.0; 
+
+    // Density
+    var d = 0.005;
+
+    // Mass
+    var m1 = 1000.0;
+    var m2 = 200.0;
+
+    // Radius
+    var r1 = ((3*m1/d)/(4*Math.PI)) ** (1/3)
+    var r2 = ((3*m2/d)/(4*Math.PI)) ** (1/3)
+    
+    // Initial position
+    var px1 = canvas.width*0.3;
+    var py1 = canvas.height*0.5;
+    var px2 = canvas.width*0.7;
+    var py2 = canvas.height*0.5;
+
+    // Initial velocity
+    var vx1 = 0;
+    var vy1 = 2;
+    var vx2 = 0;
+    var vy2 = -10;
+
+    // Initial force
+    var fx1 = 0.0;
+    var fy1 = 0.0;
+    var fx2 = 0.0;
+    var fy2 = 0.0;
+
+    // Timestep, delta-time
+    var dt = 0.2;
+
+    var img1 = new Image();
+    img1.src = '../img/asteroid02.png';
+
+    var img2 = new Image();
+    img2.src = '../img/asteroid03.png';
+
+    var img3 = new Image();
+    img3.src = '../img/cartoon-rocket.png';
+    
+    var a1 = 0;
+    var a2 = 0;
+
+    function drawBalls(e) {
+
+        ctx.resetTransform();
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        
+        for(let i = 0 ; i < asteroids.length ; i++) {
+            ctx.setTransform(0.1,0,0,0.1,asteroids[i].position_x - cx + canvas.width/2, asteroids[i].position_y - cy + canvas.height/2);
+            ctx.rotate(asteroids[i].angle);
+            ctx.drawImage(img1, -img1.width/2, -img1.height/2);
+        }
+        
+
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "white";
+        ctx.fillText(spaceship.angleVec.x, 100, 100);
+        ctx.fillText(spaceship.angleVec.y, 100, 120);
+        ctx.fillText(asteroids.length, 100, 140);
+
+        //ctx.resetTransform();
+        ctx.setTransform(1,0,0,1,px1- cx + canvas.width/2, py1 - cy + canvas.height/2);
+        ctx.rotate(a1);
+        ctx.drawImage(img1, -img1.width/2, -img1.height/2);
+
+        //ctx.resetTransform();
+        ctx.setTransform(0.2,0,0,0.2,px2 - cx + canvas.width/2, py2 - cy + canvas.height/2);
+        ctx.rotate(a2);
+        ctx.drawImage(img2, -img2.width/2, -img2.height/2);
+
+        //ctx.resetTransform();
+        ctx.setTransform(0.15,0,0,0.15,spaceship.position.x - cx + canvas.width/2, spaceship.position.y - cy + canvas.height/2);
+        ctx.rotate(spaceship.angle + 0.25 * 2 * Math.PI);
+        ctx.drawImage(img3, -img3.width/2, -img3.height/2);
+
+    }
+
+    //
+    function mainLoop() {
+
+        if (state.keydown == true && state.code == 37) {spaceship.angle -= 0.04; spaceship.angleVec.x = Math.cos(spaceship.angle ); spaceship.angleVec.y = Math.sin(spaceship.angle );}
+        if (state.keydown == true && state.code == 39) {spaceship.angle += 0.04; spaceship.angleVec.x = Math.cos(spaceship.angle ); spaceship.angleVec.y = Math.sin(spaceship.angle ); }
+        if (state.keydown == true && state.code == 38) {spaceship.force.x += 100 * spaceship.angleVec.x; spaceship.force.y += 100 * spaceship.angleVec.y;}
+        if (state.keydown == true && state.code == 40) { }
+        
+        update();
+
+        cx = spaceship.position.x;
+        cy = spaceship.position.y;
+
+        requestAnimationFrame(drawBalls);
+    }
+
+    function update()
+    {
+        
+        for(let i = 0 ; i < asteroids.length-1 ; i++) {
+
+            for(let j = i+1 ; j < asteroids.length ; j++ ) {
+
+                let rx = asteroids[j].position_x - asteroids[i].position_x
+                let ry = asteroids[j].position_y - asteroids[i].position_y
+
+                if (Math.abs(rx) < 5 || Math.abs(ry) < 5 ) { continue; }
+
+                let r2 = rx*rx+ry*ry;
+                let r = Math.sqrt(r2);
+                let f = G * (asteroids[i].mass * asteroids[j].mass) / r2;
+
+                asteroids[i].force_x += f * (rx / r);
+                asteroids[i].force_y += f * (ry / r);
+
+                asteroids[j].force_x -= f * (rx / r);
+                asteroids[j].force_y -= f * (ry / r);
+            };
+        };
+        
+        for(let i = 0 ; i < asteroids.length ; i++) {
+
+            asteroids[i].velocity_x += asteroids[i].force_x / asteroids[i].mass * dt;
+            asteroids[i].velocity_y += asteroids[i].force_y / asteroids[i].mass * dt;
+
+            asteroids[i].position_x += asteroids[i].velocity_x * dt;
+            asteroids[i].position_y += asteroids[i].velocity_y * dt;
+
+            asteroids[i].force_x = 0;
+            asteroids[i].force_y = 0;
+        };
+        
+
+        // Distance
+        let rx = px2 - px1;
+        let ry = py2 - py1;
+
+        // Dist. squared
+        let r2 = rx*rx+ry*ry;
+        
+        // Distance
+        let r = Math.sqrt(r2);
+
+        // Gravitational force
+        let f = G * (m1 * m2) / r2;
+        
+        // Force vectors
+        fx1 += f * (rx / r);
+        fy1 += f * (ry / r);
+        fx2 += -f * (rx / r);
+        fy2 += -f * (ry / r);
+
+        // Velocity vectors = Acceleration * dt
+        vx1 += (fx1 / m1) * dt;
+        vy1 += (fy1 / m1) * dt;
+        vx2 += (fx2 / m2) * dt;
+        vy2 += (fy2 / m2) * dt;
+
+        // Position vectors
+        px1 += vx1 * dt;
+        py1 += vy1 * dt;
+        px2 += vx2 * dt;
+        py2 += vy2 * dt;
+
+        // Reset force
+        fx1 = 0.0;
+        fy1 = 0.0;
+        fx2 = 0.0;
+        fy2 = 0.0;
+
+        a1 += 0.002;
+        a2 -= 0.004;
+
+        spaceship.velocity.x += (spaceship.force.x / spaceship.mass) * dt;
+        spaceship.velocity.y += (spaceship.force.y / spaceship.mass) * dt;
+
+        spaceship.position.x += spaceship.velocity.x * dt;
+        spaceship.position.y += spaceship.velocity.y * dt;
+
+        spaceship.force.x = 0;
+        spaceship.force.y = 0;
+    }
+
+    // run loop
+    setInterval(mainLoop, 10);
+
+</script>
+
+</body>
+</html>

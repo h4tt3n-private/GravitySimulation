@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Gravity simulation by MSN - Made day 01 of learning JS</title>
+    <style>* { padding: 0; margin: 0; } canvas { background: #eee; display: block; margin: 0 auto; }</style>
+</head>
+
+<body>
+
+<p id="radius">You will never read this</p>
+
+<canvas id="myCanvas" width="900" height="600"></canvas>
+
+<script>
+    var canvas = document.getElementById("myCanvas");
+    var ctx = canvas.getContext("2d");
+    
+    // Gravitational constant
+    const G = 80.0; 
+
+    // Density
+    var d = 0.02;
+
+    // Mass
+    var m1 = 1000.0;
+    var m2 = 200.0;
+
+    // Radius
+    var r1 = ((3*m1/d)/(4*Math.PI)) ** (1/3)
+    var r2 = ((3*m2/d)/(4*Math.PI)) ** (1/3)
+    
+    // Initial position
+    var px1 = canvas.width*0.3;
+    var py1 = canvas.height*0.3;
+    var px2 = canvas.width*0.8;
+    var py2 = canvas.height*0.8;
+
+    // Initial velocity
+    var vx1 = -1;
+    var vy1 = 1;
+    var vx2 = 5;
+    var vy2 = -5;
+
+    // Initial force
+    var fx1 = 0.0;
+    var fy1 = 0.0;
+    var fx2 = 0.0;
+    var fy2 = 0.0;
+
+    // Timestep, delta-time
+    var dt = 0.5;
+
+    //
+    function drawBalls() {
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.beginPath();
+        ctx.arc(px1, py1, r1, 0, Math.PI*2);
+        ctx.fillStyle = "#FF0000";
+        ctx.fill();
+        ctx.closePath();
+
+        ctx.beginPath();
+        ctx.arc(px2, py2, r2, 0, Math.PI*2);
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    //
+    function mainLoop() {
+        
+        update();
+
+        drawBalls();
+    }
+
+    function update()
+    {
+        // Distance
+        let rx = px2 - px1;
+        let ry = py2 - py1;
+
+        // Dist. squared
+        let r2 = rx*rx+ry*ry;
+        
+        // Distance
+        let r = Math.sqrt(r2);
+
+        document.getElementById("radius").innerHTML = "Radius: " + r;
+
+        // Gravitational force
+        let f = G * (m1 * m2) / r2;
+        
+        // Force vectors
+        fx1 = f * (rx / r);
+        fy1 = f * (ry / r);
+        fx2 = -f * (rx / r);
+        fy2 = -f * (ry / r);
+
+        // Velocity vectors = Acceleration * dt
+        vx1 += (fx1 / m1) * dt;
+        vy1 += (fy1 / m1) * dt;
+        vx2 += (fx2 / m2) * dt;
+        vy2 += (fy2 / m2) * dt;
+
+        // Position vectors
+        px1 += vx1 * dt;
+        py1 += vy1 * dt;
+        px2 += vx2 * dt;
+        py2 += vy2 * dt;
+
+        // Reset force
+        fx1 = 0.0;
+        fy1 = 0.0;
+        fx2 = 0.0;
+        fy2 = 0.0;
+    }
+
+    // run loop
+    setInterval(mainLoop, 10);
+
+</script>
+
+</body>
+</html>
