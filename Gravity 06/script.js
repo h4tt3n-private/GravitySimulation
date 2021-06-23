@@ -212,8 +212,6 @@ for(let i = 0 ; i < 10 ; i++) {
 };
 
 
-
-
 var img1 = new Image();
 img1.src = 'img/asteroid01.png';
 
@@ -230,6 +228,10 @@ images.push(img1);
 images.push(img2);
 images.push(img3);
 images.push(img4);
+
+function loadImages() {
+
+}
 
 function renderObjects() {
 
@@ -276,19 +278,19 @@ function renderObjects() {
     ctx.resetTransform();
     ctx.font = "16px Arial";
     ctx.fillStyle = "white";
-    ctx.fillText(camera.zoom, 50, 50);
+    ctx.fillText(camera.zoom.toFixed(2), 50, 50);
 }
 
 //
 function mainLoop() {
 
-    if (gameKeyState.a == true) {spaceship.angle -= 0.04; spaceship.angleVec.x = Math.cos(spaceship.angle ); spaceship.angleVec.y = Math.sin(spaceship.angle );}
-    if (gameKeyState.d == true) {spaceship.angle += 0.04; spaceship.angleVec.x = Math.cos(spaceship.angle ); spaceship.angleVec.y = Math.sin(spaceship.angle ); }
-    if (gameKeyState.w == true) {spaceship.force.x += 1000 * spaceship.angleVec.x; spaceship.force.y += 1000 * spaceship.angleVec.y;}
+    if (gameKeyState.a == true) {spaceship.angle -= 0.05; spaceship.angleVec.x = Math.cos(spaceship.angle ); spaceship.angleVec.y = Math.sin(spaceship.angle );}
+    if (gameKeyState.d == true) {spaceship.angle += 0.05; spaceship.angleVec.x = Math.cos(spaceship.angle ); spaceship.angleVec.y = Math.sin(spaceship.angle ); }
+    if (gameKeyState.w == true) {spaceship.force.x += 1200 * spaceship.angleVec.x; spaceship.force.y += 1200 * spaceship.angleVec.y;}
     if (gameKeyState.s == true) { }
 
     calculateGravity();
-    updateState();
+    updateState(objects);
 
     camera.restPosition.x = spaceship.position.x
     camera.restPosition.y = spaceship.position.y
@@ -341,29 +343,107 @@ function calculateGravity()
     };
 }
 
-function updateState() {
+function calculateGravityAmong(array)
+{
+    for(let i = 0 ; i < array.length-1 ; i++) {
 
-    for(let i = 0 ; i < objects.length ; i++) {
+        for(let j = i+1 ; j < array.length ; j++ ) {
+
+            // distance vector
+            let rx = array[j].position.x - array[i].position.x;
+            let ry = array[j].position.y - array[i].position.y;
+
+            let rSum = array[i].radius + array[j].radius;
+
+            //if ((Math.abs(rx) < rSum) || (Math.abs(ry) < rSum) ) { continue; }
+
+            // distance squared
+            let r2 = rx*rx+ry*ry;
+
+            if (r2 < rSum*rSum) { continue; }
+
+            // distance scalar
+            let r = Math.sqrt(r2);
+
+            // force scalar
+            let f = G * (array[i].mass * array[j].mass) / r2;
+
+            // force vector
+            let fx = f * rx / r;
+            let fy = f * ry / r;
+
+            // apply force
+            array[i].force.x += fx;
+            array[i].force.y += fy;
+
+            array[j].force.x -= fx;
+            array[j].force.y -= fy;
+        };
+    };
+}
+
+function calculateGravityBetween(arrayA, arrayB)
+{
+    for(let i = 0 ; i < arrayA.length ; i++) {
+
+        for(let j = 0 ; j < arrayB.length ; j++ ) {
+
+            // distance vector
+            let rx = arrayA[j].position.x - arrayB[i].position.x;
+            let ry = arrayA[j].position.y - arrayB[i].position.y;
+
+            let rSum = arrayA[i].radius + arrayB[j].radius;
+
+            //if ((Math.abs(rx) < rSum) || (Math.abs(ry) < rSum) ) { continue; }
+
+            // distance squared
+            let r2 = rx*rx+ry*ry;
+
+            if (r2 < rSum*rSum) { continue; }
+
+            // distance scalar
+            let r = Math.sqrt(r2);
+
+            // force scalar
+            let f = G * (arrayA[i].mass * arrayB[j].mass) / r2;
+
+            // force  vector
+            let fx = f * rx / r;
+            let fy = f * ry / r;
+
+            // apply force
+            arrayA[i].force.x += fx;
+            arrayA[i].force.y += fy;
+
+            arrayB[j].force.x -= fx;
+            arrayB[j].force.y -= fy;
+        };
+    };
+}
+
+function updateState(array) {
+
+    for(let i = 0 ; i < array.length ; i++) {
 
         //
-        objects[i].velocity.x += objects[i].force.x / objects[i].mass * dt;
-        objects[i].velocity.y += objects[i].force.y / objects[i].mass * dt;
+        array[i].velocity.x += array[i].force.x / array[i].mass * dt;
+        array[i].velocity.y += array[i].force.y / array[i].mass * dt;
 
-        objects[i].position.x += objects[i].velocity.x * dt;
-        objects[i].position.y += objects[i].velocity.y * dt;
+        array[i].position.x += array[i].velocity.x * dt;
+        array[i].position.y += array[i].velocity.y * dt;
 
-        objects[i].force.x = 0;
-        objects[i].force.y = 0;
+        array[i].force.x = 0;
+        array[i].force.y = 0;
 
         //
-        objects[i].angularVelocity += objects[i].torque / objects[i].momentOfInertia * dt;
+        array[i].angularVelocity += array[i].torque / array[i].momentOfInertia * dt;
 
-        objects[i].angle += objects[i].angularVelocity * dt;
+        array[i].angle += array[i].angularVelocity * dt;
 
         //objects[i].angleVec.x = Math.cos(objects[i].angle ); 
         //objects[i].angleVec.y = Math.sin(objects[i].angle );
 
-        objects[i].torque = 0;
+        array[i].torque = 0;
     };
 }
 
