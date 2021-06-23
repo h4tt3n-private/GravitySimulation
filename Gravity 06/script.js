@@ -1,20 +1,10 @@
 
-var cx = 0;
-var cy = 0;
-
-var mx = 0;
-var my = 0;
-
-var zoom = 1.0;
-var dZoom = 0.01;
-var maxZoom = 4.0;
-var minZoom = 0.2;
 
 // Gravitational constant
 const G = 1000; 
 
 // Timestep, delta-time
-var dt = 1 / 60;
+const dt = 1 / 60;
 
 //
 var canvas = document.getElementById("myCanvas");
@@ -29,12 +19,28 @@ var ctx = canvas.getContext("2d");
 var camera = {
     position : { x : 0, y : 0 },
     restPosition : { x : 0, y : 0 },
-    deltaPosition: 0,
+    deltaPosition: 0.05,
     zoom: 0.0,
-    deltaZoom: 0.0,
-    restZoom: 0.0,
+    maxZoom : 10,
+    minZoom : 0.1,
+    deltaZoom: 0.05,
+    restZoom: 1.0,
     update: function(){  
         
+        if(gameKeyState.ArrowUp)    {this.restPosition.y -= (screen.height/4) / this.zoom}
+        if(gameKeyState.ArrowDown)  {this.restPosition.y += (screen.height/4) / this.zoom}
+        if(gameKeyState.ArrowLeft)  {this.restPosition.x -= (screen.width/4)  / this.zoom}
+        if(gameKeyState.ArrowRight) {this.restPosition.x += (screen.width/4)  / this.zoom}
+        if(gameKeyState.q) { this.restZoom /= (1.0 + this.deltaZoom); if(this.restZoom < this.minZoom) {this.restZoom = this.minZoom} };
+        if(gameKeyState.e) { this.restZoom *= (1.0 + this.deltaZoom); if(this.restZoom > this.maxZoom) {this.restZoom = this.maxZoom} }; 
+        
+        let zoomDiff = this.zoom - this.restZoom;
+        this.zoom -= zoomDiff * this.deltaZoom;
+
+        let positionDiffX = this.position.x - this.restPosition.x;
+        let positionDiffY = this.position.y - this.restPosition.y;
+        this.position.x -= positionDiffX * this.deltaPosition;
+        this.position.y -= positionDiffY * this.deltaPosition;
     }
 };
 
@@ -102,33 +108,8 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min); //The maximum is inclusive and the minimum is inclusive
   }
 
-function updateCameraZoom(e) {
-    
-    console.log(e);
-    
-    if(e.deltaY < 0 ) {
-        zoom *= (1.0 + dZoom);
-        if(zoom > maxZoom) {zoom = maxZoom}
-        if(zoom < minZoom) {zoom = minZoom}
-    }
-
-    if(e.deltaY > 0 ) {
-        zoom /= (1.0 + dZoom);
-        if(zoom > maxZoom) {zoom = maxZoom}
-        if(zoom < minZoom) {zoom = minZoom}
-    }
-  }
-
-  function updateCameraPosition(e) {
-    console.log(e);
-    mx = e.x;
-    my = e.y;
-  }
-
 window.addEventListener('keydown', keyDown);
 window.addEventListener('keyup', keyUp);
-//window.addEventListener('wheel', updateCameraZoom)
-//window.addEventListener('mousemove', updateCameraPosition)
 
 var spaceship = {
     position : { x : -4000, y : 0 },
@@ -233,9 +214,9 @@ function drawBalls() {
         
         var img = images[asteroids[i].image];
 
-        ctx.setTransform(1, 0, 0, 1, (asteroids[i].position.x - cx) * zoom + canvas.width/2, (asteroids[i].position.y - cy) * zoom + canvas.height/2);
+        ctx.setTransform(1, 0, 0, 1, (asteroids[i].position.x - camera.position.x) * camera.zoom + canvas.width/2, (asteroids[i].position.y - camera.position.y) * camera.zoom + canvas.height/2);
         ctx.beginPath();
-        ctx.arc(0, 0, asteroids[i].radius * zoom, 0, Math.PI*2);
+        ctx.arc(0, 0, asteroids[i].radius * camera.zoom, 0, Math.PI*2);
         ctx.fillStyle = "#0095DD22";
         ctx.fill();
         ctx.closePath();
@@ -244,15 +225,15 @@ function drawBalls() {
     for(let i = 0 ; i < asteroids.length-1 ; i++) {
         
         var img = images[asteroids[i].image];
-        ctx.setTransform(1, 0, 0, 1, (asteroids[i].position.x - cx) * zoom + canvas.width/2, (asteroids[i].position.y - cy) * zoom + canvas.height/2);
+        ctx.setTransform(1, 0, 0, 1, (asteroids[i].position.x - camera.position.x) * camera.zoom + canvas.width/2, (asteroids[i].position.y - camera.position.y) * camera.zoom + canvas.height/2);
         ctx.rotate(asteroids[i].angle + 0.25 * 2 * Math.PI);
-        ctx.drawImage(img, -asteroids[i].radius * zoom, -asteroids[i].radius * zoom, asteroids[i].radius*2 * zoom, asteroids[i].radius*2 * zoom);
+        ctx.drawImage(img, -asteroids[i].radius * camera.zoom, -asteroids[i].radius * camera.zoom, asteroids[i].radius*2 * camera.zoom, asteroids[i].radius*2 * camera.zoom);
     }
 
     var img = images[spaceship.image];
-    ctx.setTransform(1, 0, 0, 1, (spaceship.position.x - cx) * zoom + canvas.width/2, (spaceship.position.y - cy) * zoom + canvas.height/2);
+    ctx.setTransform(1, 0, 0, 1, (spaceship.position.x - camera.position.x) * camera.zoom + canvas.width/2, (spaceship.position.y - camera.position.y) * camera.zoom + canvas.height/2);
     ctx.rotate(spaceship.angle + 0.25 * 2 * Math.PI);
-    ctx.drawImage(img, -spaceship.radius * zoom, -spaceship.radius*2 * zoom, spaceship.radius*2 * zoom, spaceship.radius*4 * zoom);
+    ctx.drawImage(img, -spaceship.radius * camera.zoom, -spaceship.radius*2 * camera.zoom, spaceship.radius*2 * camera.zoom, spaceship.radius*4 * camera.zoom);
 
     ctx.resetTransform();
 
@@ -271,15 +252,10 @@ function mainLoop() {
 
     update();
 
-    cx = spaceship.position.x
-    cy = spaceship.position.y
+    camera.restPosition.x = spaceship.position.x
+    camera.restPosition.y = spaceship.position.y
 
-    if(gameKeyState.ArrowUp)    {cy -= (screen.height/4) / zoom}
-    if(gameKeyState.ArrowDown)  {cy += (screen.height/4) / zoom}
-    if(gameKeyState.ArrowLeft)  {cx -= (screen.width/4)  / zoom}
-    if(gameKeyState.ArrowRight) {cx += (screen.width/4)  / zoom}
-    if(gameKeyState.q) { zoom /= (1.0 + dZoom); if(zoom > maxZoom) {zoom = maxZoom}; if(zoom < minZoom) {zoom = minZoom} }
-    if(gameKeyState.e) { zoom *= (1.0 + dZoom); if(zoom > maxZoom) {zoom = maxZoom}; if(zoom < minZoom) {zoom = minZoom} }
+    camera.update();
 
     //cx = spaceship.position.x + (mx - screen.width/2) / zoom;
     //cy = spaceship.position.y + (my - screen.height/2) / zoom;
