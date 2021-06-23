@@ -7,16 +7,26 @@ const G = 1000;
 const dt = 1 / 60;
 
 //
-var canvas = document.getElementById("myCanvas");
+const objects = [];
+const bullets = [];
+const vessels = [];
+const images = [];
+
+// Canvas
+const canvas = document.getElementById("myCanvas");
+
 canvas.setAttribute('width', window.innerWidth);
 canvas.setAttribute('height', window.innerHeight);
 
+// Context
+const ctx = canvas.getContext("2d");
+
+ctx.imageSmoothingEnabled = true;
+
+
 document.getElementById("myCanvas").focus();
 
-//
-var ctx = canvas.getContext("2d");
-
-var camera = {
+const camera = {
     position : { x : 0, y : 0 },
     restPosition : { x : 0, y : 0 },
     deltaPosition: 0.1,
@@ -30,8 +40,8 @@ var camera = {
 
         if(gameKeyState.ArrowUp)    {this.restPosition.y -= (screen.height/4) / this.zoom}
         if(gameKeyState.ArrowDown)  {this.restPosition.y += (screen.height/4) / this.zoom}
-        if(gameKeyState.ArrowLeft)  {this.restPosition.x -= (screen.width/4)  / this.zoom}
-        if(gameKeyState.ArrowRight) {this.restPosition.x += (screen.width/4)  / this.zoom}
+        if(gameKeyState.ArrowLeft)  {this.restPosition.x -= (screen.height/4) / this.zoom}
+        if(gameKeyState.ArrowRight) {this.restPosition.x += (screen.height/4) / this.zoom}
         if(gameKeyState.q) { this.restZoom /= (1.0 + this.zoomSpeed); if(this.restZoom < this.minZoom) {this.restZoom = this.minZoom} };
         if(gameKeyState.e) { this.restZoom *= (1.0 + this.zoomSpeed); if(this.restZoom > this.maxZoom) {this.restZoom = this.maxZoom} }; 
     },
@@ -106,15 +116,16 @@ function rnd(min,max) {
 }
 
 function getRandomInt(min, max) {
+     //max and min inclusive
     min = Math.ceil(min);
     max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1) + min); //The maximum is inclusive and the minimum is inclusive
+    return Math.floor(Math.random() * (max - min + 1) + min);
   }
 
 window.addEventListener('keydown', keyDown);
 window.addEventListener('keyup', keyUp);
 
-var spaceship = {
+const spaceship = {
     position : { x : -4000, y : 0 },
     velocity : { x : 0, y : 0 },
     force : { x : 0, y : 0 },
@@ -128,7 +139,7 @@ var spaceship = {
     image : 3
 };
 
-var planet = {
+const planet = {
     position : { x : 0, y : 0 },
     velocity : { x : 0, y : 0 },
     force : { x : 0, y : 0 },
@@ -146,13 +157,12 @@ spaceship.radius = ((3 * spaceship.mass / 0.0001)/(4 * Math.PI)) ** (1/3);
 
 planet.radius = ((3 * planet.mass / 0.00001)/(4 * Math.PI)) ** (1/3);
 
-const objects = [];
-
 objects.push(planet);
 
+// create asteroids
 for(let i = 0 ; i < 300 ; i++) {
 
-    var asteroid = {
+    const asteroid = {
         position : { x : 0, y : 0 },
         velocity : { x : 0, y : 0 },
         force : { x : 0, y : 0 },
@@ -187,8 +197,22 @@ for(let i = 0 ; i < 300 ; i++) {
 
 objects.push(spaceship);
 
+// create bullets
+for(let i = 0 ; i < 10 ; i++) {
 
-const images = [];
+    var bullet = {
+        position : { x : 0, y : 0 },
+        velocity : { x : 0, y : 0 },
+        force : { x : 0, y : 0 },
+        mass : 1,
+        radius : 5
+    };
+
+    bullets.push(bullet);
+};
+
+
+
 
 var img1 = new Image();
 img1.src = 'img/asteroid01.png';
@@ -214,11 +238,13 @@ function renderObjects() {
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // hitbox
+    // object hitbox
     for(let i = 0 ; i < objects.length ; i++) {
         
         var img = images[objects[i].image];
-
+        var x = (objects[i].position.x - camera.position.x) * camera.zoom + canvas.width/2;
+        var y = (objects[i].position.y - camera.position.y) * camera.zoom + canvas.height/2;
+        ctx.setTransform(1, 0, 0, 1, x, y);
         ctx.setTransform(1, 0, 0, 1, (objects[i].position.x - camera.position.x) * camera.zoom + canvas.width/2, (objects[i].position.y - camera.position.y) * camera.zoom + canvas.height/2);
         ctx.beginPath();
         ctx.arc(0, 0, objects[i].radius * camera.zoom, 0, Math.PI*2);
@@ -227,7 +253,7 @@ function renderObjects() {
         ctx.closePath();
     }
 
-    // objects
+    // object sprite
     for(let i = 0 ; i < objects.length-1 ; i++) {
         
         var img = images[objects[i].image];
